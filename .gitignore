@@ -6,3 +6,5 @@ logs
 history
 uploads
 src
+*.env
+cert.env
