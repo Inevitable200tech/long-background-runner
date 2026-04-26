@@ -1,5 +1,6 @@
 node_modules
 tests
+cert.env
 test-auth.js
 temp
 logs
@@ -7,4 +8,3 @@ history
 uploads
 src
 *.env
-cert.env
