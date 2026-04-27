@@ -13,6 +13,8 @@ const http = require('http'); // Added for health endpoint
 const Scheduler = require('./lib/scheduler');
 const BatchUpload = require('./lib/batchUpload');
 const config = require('./config/config');
+const db = require('./lib/db');
+const historyService = require('./lib/historyService');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -25,6 +27,7 @@ async function main() {
   try {
     if (args.length === 0) {
       // No arguments: Start background scheduler, health server, and history monitor
+      await db.connect();
       const scheduler = startScheduler();
       startHealthServer(scheduler);
       startHistoryMonitor();
@@ -108,65 +111,18 @@ function startHealthServer(scheduler) {
 }
 
 /**
- * Start history monitor - prints history every 30s and prunes entries older than 1 day
+ * Start history monitor - prints history every 30s and prunes entries older than 2 days
  */
 function startHistoryMonitor() {
   const INTERVAL_MS = 30 * 1000; // 30 seconds
-  const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day
+  const MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
 
-  console.log('📜 History monitor started (every 30s, pruning entries older than 24h)');
+  console.log('📜 History monitor started (every 30s, pruning entries older than 48h)');
 
-  setInterval(() => {
+  setInterval(async () => {
     try {
-      const historyFile = config.logging.historyFile;
-
-      if (!fs.existsSync(historyFile)) {
-        console.log('\n📜 No upload history yet.\n');
-        return;
-      }
-
-      const content = fs.readFileSync(historyFile, 'utf-8').trim();
-      if (!content) {
-        console.log('\n📜 Upload history is empty.\n');
-        return;
-      }
-
-      const lines = content.split('\n');
-      const now = Date.now();
-      const keptLines = [];
-      let pruned = 0;
-
-      for (const line of lines) {
-        // Extract timestamp from format: [4/27/2026, 2:30:00 PM]
-        const match = line.match(/^\[(.+?)\]/);
-        if (match) {
-          const entryDate = new Date(match[1]);
-          if (!isNaN(entryDate.getTime()) && (now - entryDate.getTime()) > MAX_AGE_MS) {
-            pruned++;
-            continue; // Skip old entries
-          }
-        }
-        keptLines.push(line);
-      }
-
-      // Rewrite file if any entries were pruned
-      if (pruned > 0) {
-        fs.writeFileSync(historyFile, keptLines.join('\n') + (keptLines.length > 0 ? '\n' : ''));
-        console.log(`🗑️ Pruned ${pruned} history entries older than 24h`);
-      }
-
-      // Print current history
-      if (keptLines.length > 0) {
-        console.log(`\n${'='.repeat(50)}`);
-        console.log(`📜 UPLOAD HISTORY (${keptLines.length} entries)`);
-        console.log('='.repeat(50));
-        keptLines.forEach((line, i) => {
-          console.log(`  ${i + 1}. ${line}`);
-        });
-        console.log('='.repeat(50) + '\n');
-      } else {
-        console.log('\n📜 Upload history is empty (all entries pruned).\n');
-      }
+      await historyService.pruneHistory(MAX_AGE_MS);
+      await historyService.printHistory();
     } catch (error) {
       console.error('❌ History monitor error:', error.message);
     }
@@ -265,7 +221,6 @@ function showHelp() {
     The background scheduler now listens on http://localhost:3000/health
 
   LOGS:
-    ${config.logging.historyFile}
     ${config.logging.errorLog}
   `);
   process.exit(0);
@@ -294,9 +249,7 @@ function ensureDirectories() {
   const dirs = [
     config.processing.tempDir,
     config.processing.logsDir,
-    path.dirname(config.logging.historyFile),
     path.dirname(config.logging.errorLog),
-    path.dirname(config.logging.successLog),
     './uploads'
   ];
 

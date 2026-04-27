@@ -33,7 +33,6 @@ module.exports = {
     safe: process.env.HOTPIC_SAFE || 'adult',
     orientation: process.env.HOTPIC_ORIENTATION || 'Straight',
     autoDelete: process.env.HOTPIC_AUTO_DELETE || '1',
-    autoDeleteTime: process.env.HOTPIC_AUTO_DELETE_TIME ? parseInt(process.env.HOTPIC_AUTO_DELETE_TIME) : 86400, // 24 hours in seconds
     visitorId: process.env.HOTPIC_VISITOR_ID || 'b3aa583268e6a6413e5ec0fe0db10051',
     userAgent: process.env.HOTPIC_USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
     origin: process.env.HOTPIC_ORIGIN || 'https://hotpic.me',
@@ -62,6 +61,11 @@ module.exports = {
     timezone: 'UTC'
   },
 
+  // MongoDB Configuration
+  mongodb: {
+    uri: process.env.MONGODB_URI || null
+  },
+
   // File Processing Configuration
   processing: {
     tempDir: './temp',
@@ -76,8 +80,6 @@ module.exports = {
 
   // Logging Configuration
   logging: {
-    historyFile: './upload_history.txt',
-    successLog: './logs/success.log',
     errorLog: './logs/errors.log',
     debugMode: process.env.DEBUG || false,
     verbose: process.env.VERBOSE || false
