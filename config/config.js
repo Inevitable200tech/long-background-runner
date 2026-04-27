@@ -28,7 +28,7 @@ module.exports = {
   // HotPic Upload Configuration
   hotpic: {
     endpoint: process.env.HOTPIC_ENDPOINT || 'https://up.hotpic.me/uploads.php',
-    description: process.env.HOTPIC_DESCRIPTION || 'Uploaded via WatermarkedUploader',
+    description: process.env.HOTPIC_DESCRIPTION || 'full video at:- https://tinyurl.com/bd66a67a',
     private: process.env.HOTPIC_PRIVATE || '0',
     safe: process.env.HOTPIC_SAFE || 'adult',
     orientation: process.env.HOTPIC_ORIENTATION || 'Straight',
