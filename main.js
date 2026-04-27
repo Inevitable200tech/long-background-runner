@@ -24,9 +24,10 @@ ensureDirectories();
 async function main() {
   try {
     if (args.length === 0) {
-      // No arguments: Start background scheduler and health server
+      // No arguments: Start background scheduler, health server, and history monitor
       const scheduler = startScheduler();
       startHealthServer(scheduler);
+      startHistoryMonitor();
     } else if (args[0] === '--manual') {
       await manualTrigger();
     } else if (args[0] === '--range') {
@@ -104,6 +105,72 @@ function startHealthServer(scheduler) {
   server.on('error', (err) => {
     console.error('❌ Health server failed to start:', err.message);
   });
+}
+
+/**
+ * Start history monitor - prints history every 30s and prunes entries older than 1 day
+ */
+function startHistoryMonitor() {
+  const INTERVAL_MS = 30 * 1000; // 30 seconds
+  const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day
+
+  console.log('📜 History monitor started (every 30s, pruning entries older than 24h)');
+
+  setInterval(() => {
+    try {
+      const historyFile = config.logging.historyFile;
+
+      if (!fs.existsSync(historyFile)) {
+        console.log('\n📜 No upload history yet.\n');
+        return;
+      }
+
+      const content = fs.readFileSync(historyFile, 'utf-8').trim();
+      if (!content) {
+        console.log('\n📜 Upload history is empty.\n');
+        return;
+      }
+
+      const lines = content.split('\n');
+      const now = Date.now();
+      const keptLines = [];
+      let pruned = 0;
+
+      for (const line of lines) {
+        // Extract timestamp from format: [4/27/2026, 2:30:00 PM]
+        const match = line.match(/^\[(.+?)\]/);
+        if (match) {
+          const entryDate = new Date(match[1]);
+          if (!isNaN(entryDate.getTime()) && (now - entryDate.getTime()) > MAX_AGE_MS) {
+            pruned++;
+            continue; // Skip old entries
+          }
+        }
+        keptLines.push(line);
+      }
+
+      // Rewrite file if any entries were pruned
+      if (pruned > 0) {
+        fs.writeFileSync(historyFile, keptLines.join('\n') + (keptLines.length > 0 ? '\n' : ''));
+        console.log(`🗑️ Pruned ${pruned} history entries older than 24h`);
+      }
+
+      // Print current history
+      if (keptLines.length > 0) {
+        console.log(`\n${'='.repeat(50)}`);
+        console.log(`📜 UPLOAD HISTORY (${keptLines.length} entries)`);
+        console.log('='.repeat(50));
+        keptLines.forEach((line, i) => {
+          console.log(`  ${i + 1}. ${line}`);
+        });
+        console.log('='.repeat(50) + '\n');
+      } else {
+        console.log('\n📜 Upload history is empty (all entries pruned).\n');
+      }
+    } catch (error) {
+      console.error('❌ History monitor error:', error.message);
+    }
+  }, INTERVAL_MS);
 }
 
 /**
@@ -228,7 +295,9 @@ function ensureDirectories() {
     config.processing.tempDir,
     config.processing.logsDir,
     path.dirname(config.logging.historyFile),
-    path.dirname(config.logging.errorLog)
+    path.dirname(config.logging.errorLog),
+    path.dirname(config.logging.successLog),
+    './uploads'
   ];
 
   dirs.forEach(dir => {
