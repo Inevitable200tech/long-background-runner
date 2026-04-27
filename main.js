@@ -205,13 +205,22 @@ function showHelp() {
 }
 
 function formatResult(result) {
-  return `
+  let output = `
   Videos:     ${result.videosUploaded}/${result.videosProcessed} uploaded
   Images:     ${result.imagesUploaded}/${result.imagesProcessed} uploaded
   Thumbnails: ${result.thumbnailsUploaded} attached
   Failures:   ${result.totalFailures}
   Success:    ${result.successRate}
   `;
+
+  if (result.albums && result.albums.length > 0) {
+    output += `\n  🔗 Uploaded Albums:\n`;
+    result.albums.forEach(album => {
+      output += `     - ${album}\n`;
+    });
+  }
+
+  return output;
 }
 
 function ensureDirectories() {
