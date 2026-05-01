@@ -26,14 +26,16 @@ module.exports = {
   },
 
   // HotPic Upload Configuration
+  // To disable auto-deletion, set HOTPIC_AUTO_DELETE=0 in cert.env or .env
+  // Auto-delete can be configured with HOTPIC_AUTO_DELETE_TIME (in seconds)
   hotpic: {
     endpoint: process.env.HOTPIC_ENDPOINT || 'https://up.hotpic.me/uploads.php',
     description: process.env.HOTPIC_DESCRIPTION || 'full video at:- https://tinyurl.com/bd66a67a',
     private: process.env.HOTPIC_PRIVATE || '0',
     safe: process.env.HOTPIC_SAFE || 'adult',
     orientation: process.env.HOTPIC_ORIENTATION || 'Straight',
-    autoDelete: process.env.HOTPIC_AUTO_DELETE || '1',
-    autoDeleteTime: process.env.HOTPIC_AUTO_DELETE_TIME ? parseInt(process.env.HOTPIC_AUTO_DELETE_TIME) : 172800,
+    autoDelete: process.env.HOTPIC_AUTO_DELETE || '1', // Set to '0' to disable auto-deletion
+    autoDeleteTime: process.env.HOTPIC_AUTO_DELETE_TIME ? parseInt(process.env.HOTPIC_AUTO_DELETE_TIME) : 172800, // seconds (default: 48 hours)
     visitorId: process.env.HOTPIC_VISITOR_ID || 'b3aa583268e6a6413e5ec0fe0db10051',
     userAgent: process.env.HOTPIC_USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
     origin: process.env.HOTPIC_ORIGIN || 'https://hotpic.me',

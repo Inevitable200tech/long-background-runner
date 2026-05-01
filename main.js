@@ -39,6 +39,8 @@ async function main() {
       await hashTrigger();
     } else if (args[0] === '--type') {
       await typeTrigger();
+    } else if (args[0] === '--config-auto-delete') {
+      configureAutoDelete(args.slice(1));
     } else if (args[0] === '--status') {
       showStatus();
     } else if (args[0] === '--help' || args[0] === '-h') {
@@ -216,6 +218,13 @@ function showHelp() {
     node main.js --range YYYY-MM-DD YYYY-MM-DD
     node main.js --hash [hashes...]
     node main.js --type [video|image]
+    node main.js --config-auto-delete [enable|disable|status] [time]
+
+  AUTO-DELETE CONFIGURATION:
+    node main.js --config-auto-delete enable       # Enable auto-deletion (48 hours)
+    node main.js --config-auto-delete enable 3600  # Enable with custom time (in seconds)
+    node main.js --config-auto-delete disable      # Disable auto-deletion
+    node main.js --config-auto-delete status       # Show current auto-delete setting
 
   SERVER:
     The background scheduler now listens on http://localhost:3000/health
@@ -243,6 +252,64 @@ function formatResult(result) {
   }
 
   return output;
+}
+
+/**
+ * Configure auto-delete settings
+ * @param {string[]} args - Command arguments: [action, optionalTime]
+ */
+function configureAutoDelete(args) {
+  const action = args[0];
+  
+  if (!action || !['enable', 'disable', 'status'].includes(action)) {
+    console.log('❌ Invalid action. Use: enable, disable, or status');
+    process.exit(1);
+  }
+
+  if (action === 'status') {
+    console.log('\n📋 Auto-Delete Configuration:');
+    console.log(`   Status:     ${config.hotpic.autoDelete === '1' ? '✅ ENABLED' : '❌ DISABLED'}`);
+    if (config.hotpic.autoDelete === '1') {
+      const hours = Math.round(config.hotpic.autoDeleteTime / 3600);
+      console.log(`   Delete Time: ${config.hotpic.autoDeleteTime} seconds (${hours} hours)`);
+    }
+    console.log(`\n   Current Setting in cert.env:`);
+    console.log(`   HOTPIC_AUTO_DELETE=${config.hotpic.autoDelete}`);
+    if (config.hotpic.autoDelete === '1') {
+      console.log(`   HOTPIC_AUTO_DELETE_TIME=${config.hotpic.autoDeleteTime}`);
+    }
+    process.exit(0);
+  }
+
+  if (action === 'disable') {
+    console.log('📝 To disable auto-deletion:');
+    console.log('\n   Option 1: Update cert.env');
+    console.log('   Set: HOTPIC_AUTO_DELETE=0');
+    console.log('\n   Option 2: Set environment variable');
+    console.log('   export HOTPIC_AUTO_DELETE=0');
+    console.log('\n   Then restart the application.\n');
+    process.exit(0);
+  }
+
+  if (action === 'enable') {
+    const time = args[1] ? parseInt(args[1]) : 172800;
+    
+    if (isNaN(time) || time <= 0) {
+      console.log('❌ Invalid time. Please provide a positive number (seconds).');
+      process.exit(1);
+    }
+
+    const hours = Math.round(time / 3600);
+    console.log('📝 To enable auto-deletion:');
+    console.log('\n   Option 1: Update cert.env');
+    console.log('   Set: HOTPIC_AUTO_DELETE=1');
+    console.log(`   Set: HOTPIC_AUTO_DELETE_TIME=${time}`);
+    console.log('\n   Option 2: Set environment variables');
+    console.log('   export HOTPIC_AUTO_DELETE=1');
+    console.log(`   export HOTPIC_AUTO_DELETE_TIME=${time}`);
+    console.log(`\n   Files will auto-delete after ${hours} hours.\n`);
+    process.exit(0);
+  }
 }
 
 function ensureDirectories() {
